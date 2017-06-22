@@ -1,0 +1,89 @@
+---
+title: "Statistical Learning - Assignment 1"
+author: "Chetan Prabhu"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Question 1
+
+In this question, we are looking to understand how sample size affects the standard error of the mean (SEM). In order to do that, I am going to simulate drawing 10,000 iterations of different sample sizes from a $uniform(0,1)$ distribution. After each draw, I will compute the mean and store it in a vector. I will then compute the standard deviation of the vector of means for each sample size, and create a scatter plot. I will then overlay the theoretical SEM value for each sample size to see how closely the simulation approximated it.
+
+Note: In order to draw from a $uniform(0,1)$ distribution, I utilized the `runif(N, 0, 1)` function in R, where $N$ is the sample size for that particular run.
+
+```{r q1}
+sample.sizes <- c(3, 10, 50, 100, 500, 1000) # different sample sizes we are going to try:
+iterations <- 10000 # total number of iterations for each sample size
+
+mean.sds = numeric(0) # vector of SEMs
+m <- numeric(iterations) # vector of means
+
+for ( N in sample.sizes ) { # try different sample sizes
+  for ( i in 1:iterations ) { # for each sample size, run a lot of iterations
+    x <- runif(N, min = 0, max = 1) # draw from a unif(0,1) distribution, N times
+    m[i] <- mean(x) # store the mean of the draw in a vector of means
+  }
+  # compute the standard deviation of the vector of means, and store in 
+  # the mean.sds vector in the location corresponsding to the sample size
+  mean.sds <- c(mean.sds, sd(m)) 
+}  
+```
+
+In order to see the impact of sample size on the SEM, let's plot the relationship between Sample Size and SEM from the simulation. We can also compute the theoretical SEM for each sample size and overlay a line plot to see how well the simulation performed.
+
+The actual SEM for each sample size is defined as $SEM=\frac{\sigma}{\sqrt{N}}$. For a $uniform(a,b)$ distribution, $\sigma=\sqrt{\frac{1}{12}(b-a)^2}$. Since we are using a $uniform(0,1)$ distribution in this example, $\sigma=\sqrt{\frac{1}{12}}$
+
+```{r plot1, fig.align='center', fig.width=6, fig.height=4}
+plot(sample.sizes,mean.sds, 
+     main="SEM vs Sample Size",
+     xlab="Sample Size",
+     ylab="SEM",
+     pch=19)
+sd_uniform <- sqrt(1/12)
+lines(sample.sizes,sd_uniform/sqrt(sample.sizes),col='blue')
+```
+
+
+## Question 2
+In order to understand how the CLT works, I will draw samples of a given size from a $poisson(\lambda=2)$ distribution, compute the sum, and iterate many times. As the sample size that I draw increases, the histogram for the sums will start to resemble a normal distribution.
+
+```{r plot2, fig.width=12, fig.height=9, fig.align='center'}
+sample.sizes <- c(1, 2, 5, 10, 100, 1000) # different sample sizes we will test
+N = 1  # the number of i.i.d. variables X we are going to sum
+lambda <- 2 # parameter for poisson
+
+iterations = 10000 # number of iterations
+s.values=numeric() # vector storing the sum from each iteration
+
+par(mfrow=c(3,2), ps=16) # set layout for plots
+for (N in sample.sizes) { # run for each sample size
+  for (n.exp in 1:iterations) { # repeat the experiment
+    s.values[n.exp] <- sum(rpois(N, lambda)) # store the sum of the draws
+  }
+  hist(s.values,  
+       main=paste("Sample Size =", N),
+       col='lightblue',
+       xlab="Sum")
+}
+```
+
+### Extra Question
+The example above used the sum of $N$ i.i.d random variables to show the CLT. In reality, we could have used the mean to show the same type of covergence to a normal distribution. Recall:
+
+$$
+\bar{X} = \frac{1}{N}(X_1+X_2+X_3+\ldots+X_N), \;\; X_i \;\; \text{i.i.d.}
+$$
+
+The mean is just the sum of the random variables, scaled by $\frac{1}{N}$. Both distributions coverge to a normal, the only difference is where the distributions are centered (mean) and the value of the spread (standard deviation).
+
+
+For the purposes of this discussion, recall that the mean and variance of $poisson(\lambda)$ is equal to $\lambda$
+
+
+If we are looking at the sum of i.i.d random variables, the distribution would be centered at $E(S) = N * E(X_i)$. In the case of $poisson(\lambda=2)$, $E(X_i)=2$.  If we look at the histograms above, we validate that this is true (the histogram for $Sample Size = 1,000$ is centered at $2 * 1,000 = 2,000$). The variance of the sum of i.i.d random variables is the sum of the individual variances. This means that variance is $N * Var(X_i)$, and therfore the standard deviation is $SD(X_i)*\sqrt{N}$
+
+
+If we were looking at the distribution of means, $E(\bar{X}) = \frac{1}{N}(N * E(X_i))$, which reduces to $E(\bar{X}) = E(X_i)$. The variance can be derived by remembering that $Var(c*X) = c^2Var(X)$ Therefore, $Var(\bar{X}) = \frac{1}{N^2}(N*Var(X_i))$, which reduces to $Var(\bar{X}) = \frac{1}{N}Var(X_i)$. Taking the square root of both sides tells us that the standard deviation is $\frac{SD(X_i)}{\sqrt{N}}$
